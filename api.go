@@ -57,12 +57,15 @@ func (s *APIServer) Run() {
 	//(or HandlerFunc as defined in HTTP Package - type HandlerFunc func(ResponseWriter, *Request))
 	//so we convert our internal api func to the handler type
 	router.HandleFunc("/account", apiFuncToHTTPHandler(s.handleAccount))
-	router.HandleFunc("/account/{id}", apiFuncToHTTPHandler(s.handleAccountById))
+
+	//middleware withJWTAuth is used for authenticated routes
+	router.HandleFunc("/account/{id}", withJWTAuth(apiFuncToHTTPHandler(s.handleAccountById), s.store))
 	router.HandleFunc("/transfer", apiFuncToHTTPHandler(s.handleTransfer))
 
 	log.Println("JSON api running on port", s.listenAddress)
 
 	http.ListenAndServe(s.listenAddress, router)
+	fmt.Println("here")
 }
 
 //Handler for Collection Operations
@@ -109,15 +112,12 @@ func (s *APIServer) handleGetAccount(w http.ResponseWriter, r *http.Request) err
 
 func (s *APIServer) handleGetAccountById(w http.ResponseWriter, r *http.Request) error {
 
-	//fetch vars from uri/body
-	vars := mux.Vars(r)
-	idStr := vars["id"] //Id is string
-
-	//Convert to int
-	id, err := strconv.Atoi(idStr)
+	//fetch id from uri/body
+	id, err := getID(r)
 	if err != nil {
-		return fmt.Errorf(err.Error())
+		return err
 	}
+
 	account, err := s.store.GetAccountById(id)
 	if err != nil {
 		return err
@@ -141,23 +141,27 @@ func (s *APIServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) 
 	if err := s.store.CreateAccount(account); err != nil {
 		return err
 	}
+
+	tokenString, err := createJWT(account)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("JWT", tokenString)
 	return WriteJSON(w, http.StatusOK, account)
 }
 
 func (s *APIServer) handleDeleteAccountById(w http.ResponseWriter, r *http.Request) error {
 	//fetch vars from uri/body
-	vars := mux.Vars(r)
-	idStr := vars["id"] //Id is string
-
-	//Convert to int
-	id, err := strconv.Atoi(idStr)
+	id, err := getID(r)
 	if err != nil {
-		return fmt.Errorf(err.Error())
+		return err
 	}
 	err = s.store.DeleteAccount(id)
 	if err != nil {
 		return err
 	}
+
 	return WriteJSON(w, http.StatusOK, map[string]string{"message": fmt.Sprintf("Account with id %d deleted", id)})
 }
 func (s *APIServer) handleTransfer(w http.ResponseWriter, r *http.Request) error {
@@ -169,4 +173,13 @@ func (s *APIServer) handleTransfer(w http.ResponseWriter, r *http.Request) error
 
 	return WriteJSON(w, http.StatusOK, transferRequest)
 
+}
+
+func getID(r *http.Request) (int, error) {
+	idStr := mux.Vars(r)["id"]
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		return id, fmt.Errorf("invalid id given %s", idStr)
+	}
+	return id, nil
 }
