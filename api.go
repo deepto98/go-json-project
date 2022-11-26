@@ -56,7 +56,7 @@ func (s *APIServer) Run() {
 	//(or HandlerFunc as defined in HTTP Package - type HandlerFunc func(ResponseWriter, *Request))
 	//so we convert our internal api func to the handler type
 	router.HandleFunc("/account", apiFuncToHTTPHandler(s.handleAccount))
-	router.HandleFunc("/account/{id}", apiFuncToHTTPHandler(s.handleGetAccount))
+	router.HandleFunc("/account/{id}", apiFuncToHTTPHandler(s.handleGetAccountById))
 
 	log.Println("JSON api running on port", s.listenAddress)
 
@@ -81,8 +81,15 @@ func (s *APIServer) handleAccount(w http.ResponseWriter, r *http.Request) error 
 		return fmt.Errorf("method not allowed %s", r.Method)
 	}
 }
-
 func (s *APIServer) handleGetAccount(w http.ResponseWriter, r *http.Request) error {
+	accounts, err := s.store.GetAccounts()
+	if err != nil {
+		return err
+	}
+	return WriteJSON(w, http.StatusOK, accounts)
+}
+
+func (s *APIServer) handleGetAccountById(w http.ResponseWriter, r *http.Request) error {
 
 	//fetch vars from uri/body
 	// vars := mux.Vars(r)
@@ -91,9 +98,22 @@ func (s *APIServer) handleGetAccount(w http.ResponseWriter, r *http.Request) err
 	account := NewAccount("Deepto", "Gopher")
 	return WriteJSON(w, 200, account)
 }
+
 func (s *APIServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) error {
-	return nil
+
+	//this checks if the input body matches the struct type
+	createAccountRequest := new(CreateAccountRequest)
+	if err := json.NewDecoder(r.Body).Decode(createAccountRequest); err != nil {
+		return err
+	}
+	//Create new account using data
+	account := NewAccount(createAccountRequest.FirstName, createAccountRequest.LastName)
+	if err := s.store.CreateAccount(account); err != nil {
+		return err
+	}
+	return WriteJSON(w, http.StatusOK, account)
 }
+
 func (s *APIServer) handleDeleteAccount(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
