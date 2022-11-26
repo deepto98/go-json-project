@@ -92,7 +92,7 @@ func (s *APIServer) handleAccountById(w http.ResponseWriter, r *http.Request) er
 		return s.handleGetAccountById(w, r)
 
 	case "DELETE":
-		return s.handleDeleteAccount(w, r)
+		return s.handleDeleteAccountById(w, r)
 
 	default:
 		return fmt.Errorf("method not allowed %s", r.Method)
@@ -144,7 +144,7 @@ func (s *APIServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) 
 	return WriteJSON(w, http.StatusOK, account)
 }
 
-func (s *APIServer) handleDeleteAccount(w http.ResponseWriter, r *http.Request) error {
+func (s *APIServer) handleDeleteAccountById(w http.ResponseWriter, r *http.Request) error {
 	//fetch vars from uri/body
 	vars := mux.Vars(r)
 	idStr := vars["id"] //Id is string
