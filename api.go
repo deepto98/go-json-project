@@ -11,6 +11,7 @@ import (
 
 type APIServer struct {
 	listenAddress string
+	store         Storage
 }
 
 type ApiError struct {
@@ -39,9 +40,10 @@ func apiFuncToHTTPHandler(f apiFunc) http.HandlerFunc {
 	}
 }
 
-func newAPIServer(listenAddress string) *APIServer {
+func newAPIServer(listenAddress string, store Storage) *APIServer {
 	return &APIServer{
 		listenAddress: listenAddress,
+		store:         store,
 	}
 }
 
