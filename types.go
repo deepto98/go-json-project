@@ -29,3 +29,8 @@ func NewAccount(firstName, lastName string) *Account {
 		CreatedAt: time.Now().UTC(),
 	}
 }
+
+type TransferRequest struct {
+	ToAccount int `json:"toAccount"`
+	Amount    int `json:"amount"`
+}

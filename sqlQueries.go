@@ -13,3 +13,5 @@ const CreateAccountQuery = `INSERT INTO account
 	VALUES
 	($1,$2,$3,$4,$5)`
 const GetAccountsQuery = `SELECT * FROM account`
+const GetAccountByQuery = `SELECT * FROM account WHERE id = $1`
+const DeleteAccountQuery = `DELETE  FROM account WHERE id = $1`
